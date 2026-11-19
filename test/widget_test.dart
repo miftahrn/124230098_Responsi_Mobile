@@ -1,30 +1,67 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:responsi/main.dart';
+import 'package:responsi/helpers/auth_helper.dart';
+import 'package:responsi/pages/login_page.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Login validates required fields', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginPage(onLoginSuccess: () {}),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.text('Login'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Email wajib diisi'), findsOneWidget);
+    expect(find.text('Password wajib diisi'), findsOneWidget);
+  });
+
+  testWidgets('Login validates email and password rules',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginPage(onLoginSuccess: () {}),
+      ),
+    );
+
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'email-tidak-valid',
+    );
+    await tester.enterText(
+      find.byType(TextFormField).last,
+      '123',
+    );
+    await tester.tap(find.text('Login'));
+    await tester.pump();
+
+    expect(find.text('Masukkan email yang valid'), findsOneWidget);
+    expect(find.text('Password minimal 6 karakter'), findsOneWidget);
+  });
+
+  test('Local authentication stores separate password hashes', () async {
+    SharedPreferences.setMockInitialValues({});
+    final auth = AuthHelper();
+
+    expect(
+      await auth.authenticate(' userA@gmail.com ', 'shopedia123'),
+      AuthResult.success,
+    );
+    expect(
+      await auth.authenticate('userA@gmail.com', '123456'),
+      AuthResult.wrongPassword,
+    );
+    expect(
+      await auth.authenticate('USERA@gmail.com', 'shopedia123'),
+      AuthResult.success,
+    );
+    expect(
+      await auth.authenticate('userB@gmail.com', '123456'),
+      AuthResult.success,
+    );
   });
 }
